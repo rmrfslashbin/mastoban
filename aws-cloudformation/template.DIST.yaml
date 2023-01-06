@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "MastoBan: Suspending Mastodon accounts."
+
+Parameters:
+  ParamAppName:
+    Type: String
+    Default: mastoban
+    Description: Application/stack name.
+
+  ParamMastodonInstanceUrl:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** example ****/instanceUrl ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The URL of the Mastodon instance to use.
+
+  ParamMastodonAccessToken:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** example ****/accessToken ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The access token to use for the Mastodon instance.
+
+  ParamMastodonSuspendText:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** example ****/suspendText ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The text to use when suspending an account.
+
+  ParamMastodonSuspendLevel:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** example ****/suspendLevel ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The action to take when suspending an account.
+
+  ParamMastobanPSK:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** example ****/psk ## TODO: Change this to to the cooresponding SSM parameter
+    Description: Pre-shared key
+
+  ParamGeoIpDatabaseS3Bucket:
+    Type: String
+    Description: The S3 bucket where the GeoIP database file is stored.
+    Default: is-us-east-1-deployment ## TODO: Change this to the name of the S3 deployment bucket
+
+  ParamGeoIpDatabasePath:
+    Type: String
+    Default: /opt/geoipdb/GeoLite2-Country.mmdb
+    Description: The path to the GeoIP database file.
+
+  ParamGeoIpDatabaseS3Key:
+    Type: String
+    Description: The S3 key where the GeoIP database layer file is stored.
+    Default: layers/geoipdblayer.zip
+
+Globals:
+  Function:
+    Timeout: 60
+
+Resources:
+  RoleLambdaExecution:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Tags:
+        - Key: "Application"
+          Value: !Ref ParamAppName
+
+  LayerGeoIpDatabase:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content:
+        S3Bucket: !Ref ParamGeoIpDatabaseS3Bucket
+        S3Key: !Ref ParamGeoIpDatabaseS3Key
+      Description: "GeoIP Coutnry Database"
+      LayerName: !Sub ${ParamAppName}-geoipdb
+
+  FunctionMatoban:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Mastoban primary function
+      FunctionName: !Sub ${ParamAppName}
+      CodeUri: ../bin/lambda/mastoban
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures: [arm64]
+      Role: !GetAtt RoleLambdaExecution.Arn
+      Environment:
+        Variables:
+          GEOIP_DATABSE_PATH: !Ref ParamGeoIpDatabasePath
+          MASTODON_ACCESS_TOKEN: !Ref ParamMastodonAccessToken
+          MASTODON_INSTANCE_URL: !Ref ParamMastodonInstanceUrl
+          MASTODON_SUSPEND_TEXT: !Ref ParamMastodonSuspendText
+          MASTODON_SUSPEND_LEVEL: !Ref ParamMastodonSuspendLevel
+          PSK: !Ref ParamMastobanPSK
+      Layers:
+        - !Ref LayerGeoIpDatabase
+      Tags:
+        Application: !Ref ParamAppName
+
+  InvokePermissionFunctionMatoban:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref FunctionMatoban
+      Action: "lambda:InvokeFunction"
+      Principal: apigateway.amazonaws.com
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: "Mastosart API"
+      ProtocolType: "HTTP"
+      Tags:
+        Application: !Ref ParamAppName
+
+  HttpApiIntegrationMatoban:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      Description: Lambda proxy integration for Matoban
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      PayloadFormatVersion: "2.0"
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionMatoban.Arn}/invocations"
+
+  HttpApiRouteMatobanSuspendCheck:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: "POST /suspendCheck"
+      AuthorizationType: NONE
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref HttpApiIntegrationMatoban
+
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      AutoDeploy: true
+      DeploymentId: !Ref HttpApiDeployment
+      StageName: "$default"
+      ApiId: !Ref HttpApi
+
+  HttpApiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - HttpApiRouteMatobanSuspendCheck
+    Properties:
+      ApiId: !Ref HttpApi
+
+Outputs:
+  AppName:
+    Description: The name of the application.
+    Value: !Ref ParamAppName
+  ApiGateway:
+    Description: API Gateway endpoint URL for Staging stage for Matoban API
+    Value: !GetAtt HttpApi.ApiEndpoint

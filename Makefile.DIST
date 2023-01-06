@@ -1,0 +1,60 @@
+.DEFAULT_GOAL := build
+.PHONY: build
+
+deploy_bucket = is-us-east-1-deployment
+aws_profile = default 
+stack_name = mastoban
+
+build: tidy cli-build lambda-build
+
+cli-build:
+	@printf "building $(stack_name) cli:\n"
+	@printf "  linux  :: arm64"
+	@GOOS=linux GOARCH=arm64 go build -o bin/$(stack_name)-linux-arm64 cmd/$(stack_name)/main.go
+	@printf " done.\n"
+	@printf "  linux  :: amd64"
+	@GOOS=linux GOARCH=amd64 go build -o bin/$(stack_name)-linux-amd64 cmd/$(stack_name)/main.go
+	@printf " done.\n"
+	@printf "  darwin :: amd64"
+	@GOOS=darwin GOARCH=amd64 go build -o bin/$(stack_name)-darwin-amd64 cmd/$(stack_name)/main.go
+	@printf " done.\n"
+	@printf "  darwin :: arm64"
+	@GOOS=darwin GOARCH=arm64 go build -o bin/$(stack_name)-darwin-arm64 cmd/$(stack_name)/main.go
+	@printf " done.\n"
+
+tidy:
+	@echo "Making mod tidy"
+	@go mod tidy
+
+update:
+	@echo "Updating $(stack_name)"
+	@go get -u ./...
+	@go mod tidy
+
+deploy: lambda-build geoipdblayer cfdeploy cfdescribe
+
+geoipdblayer:
+	@mkdir -p build/layers
+	@zip -r build/layers/geoipdblayer.zip geoipdb
+	@aws --profile $(aws_profile) s3 cp build/layers/geoipdblayer.zip s3://$(deploy_bucket)/layers/geoipdblayer.zip
+
+cfdeploy:
+	@printf "deploying $(stack_name) to aws:\n"
+	@mkdir -p build
+	@aws --profile $(aws_profile) cloudformation package --template-file aws-cloudformation/template.yaml --s3-bucket $(deploy_bucket) --output-template-file build/out.yaml
+	@aws --profile $(aws_profile) cloudformation deploy --template-file build/out.yaml --s3-bucket $(deploy_bucket) --stack-name $(stack_name) --capabilities CAPABILITY_NAMED_IAM
+	@printf "done.\n\n"
+	@printf "outputs:\n"
+	
+lambda-build:
+	@printf "building $(stack_name) lambda functions:\n"
+	@printf "  mastoban"
+	@GOOS=linux GOARCH=arm64 go build -o bin/lambda/mastoban/bootstrap lambda/mastoban/main.go
+	@printf " done.\n"
+	
+cfdescribe:
+	@aws --output json --profile $(aws_profile) cloudformation describe-stacks --stack-name mastoban | jq '.Stacks | .[] | .Outputs | reduce .[] as $$i ({}; .[$$i.OutputKey] = $$i.OutputValue)'
+
+prune:
+	@git gc --prune=now
+	@git remote prune origin

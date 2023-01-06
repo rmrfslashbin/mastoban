@@ -1,0 +1,6 @@
+Makefile
+geoipdb/GeoLite2-Country.mmdb
+aws-cloudformation/**/*
+!aws-cloudformation/template.DIST.yaml
+build/
+bin/
