@@ -53,6 +53,15 @@ Globals:
     Timeout: 60
 
 Resources:
+  SQSMastobanWebhookQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 60
+      QueueName: !Sub ${ParamAppName}-webhook-queue
+      Tags:
+        - Key: "Application"
+          Value: !Ref ParamAppName
+
   RoleLambdaExecution:
     Type: AWS::IAM::Role
     Properties:
@@ -65,8 +74,29 @@ Resources:
                 - "lambda.amazonaws.com"
             Action:
               - "sts:AssumeRole"
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: allowLambdaLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+        - PolicyName: allowSqs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ReceiveMessage
+                  - sqs:SendMessage
+                Resource: !GetAtt SQSMastobanWebhookQueue.Arn
       Tags:
         - Key: "Application"
           Value: !Ref ParamAppName
@@ -80,16 +110,39 @@ Resources:
       Description: "GeoIP Coutnry Database"
       LayerName: !Sub ${ParamAppName}-geoipdb
 
-  FunctionMatoban:
+  FunctionMatobanWebhook:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Mastoban primary function
-      FunctionName: !Sub ${ParamAppName}
-      CodeUri: ../bin/lambda/mastoban
+      Description: Mastoban webhook function
+      FunctionName: !Sub ${ParamAppName}-webhook
+      CodeUri: ../bin/lambda/mastoban-webhook
       Handler: bootstrap
       Runtime: provided.al2
       Architectures: [arm64]
       Role: !GetAtt RoleLambdaExecution.Arn
+      Environment:
+        Variables:
+          PSK: !Ref ParamMastobanPSK
+          SQS_QUEUE_URL: !Ref SQSMastobanWebhookQueue
+      Tags:
+        Application: !Ref ParamAppName
+
+  FunctionMatobanWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Mastoban worker function
+      FunctionName: !Sub ${ParamAppName}-worker
+      CodeUri: ../bin/lambda/mastoban-worker
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures: [arm64]
+      Role: !GetAtt RoleLambdaExecution.Arn
+      Events:
+        FunctionMatobanWorkerEventSQSMastobanWebhookQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SQSMastobanWebhookQueue.Arn
+            Enabled: true
       Environment:
         Variables:
           GEOIP_DATABSE_PATH: !Ref ParamGeoIpDatabasePath
@@ -97,16 +150,15 @@ Resources:
           MASTODON_INSTANCE_URL: !Ref ParamMastodonInstanceUrl
           MASTODON_SUSPEND_TEXT: !Ref ParamMastodonSuspendText
           MASTODON_SUSPEND_LEVEL: !Ref ParamMastodonSuspendLevel
-          PSK: !Ref ParamMastobanPSK
       Layers:
         - !Ref LayerGeoIpDatabase
       Tags:
         Application: !Ref ParamAppName
 
-  InvokePermissionFunctionMatoban:
+  InvokePermissionFunctionMatobanWebhook:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref FunctionMatoban
+      FunctionName: !Ref FunctionMatobanWebhook
       Action: "lambda:InvokeFunction"
       Principal: apigateway.amazonaws.com
 
@@ -126,7 +178,7 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationMethod: POST
       PayloadFormatVersion: "2.0"
-      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionMatoban.Arn}/invocations"
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionMatobanWebhook.Arn}/invocations"
 
   HttpApiRouteMatobanSuspendCheck:
     Type: AWS::ApiGatewayV2::Route
@@ -161,3 +213,6 @@ Outputs:
   ApiGateway:
     Description: API Gateway endpoint URL for Staging stage for Matoban API
     Value: !GetAtt HttpApi.ApiEndpoint
+  WebhookUrl:
+    Description: Webhook URL for Matoban API
+    Value: !Sub ${HttpApi.ApiEndpoint}/suspendCheck?psk=${ParamMastobanPSK}

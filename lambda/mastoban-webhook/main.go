@@ -8,5 +8,5 @@ import (
 // main is the entrypoint
 func main() {
 	// Run app.AppHandler function
-	lambda.Start(app.AppHandler)
+	lambda.Start(app.WebhookHandler)
 }

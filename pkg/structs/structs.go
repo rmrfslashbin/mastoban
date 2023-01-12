@@ -1,15 +1,11 @@
-package app
-
-// Module name for logging details
-const MODULE = "app"
+package structs
 
 // Output is marshalled to JSON and sent back to the
 // API GW at the end of Lambda function execution.
 type Output struct {
-	Error    *Err   `json:"error"`
-	Status   string `json:"status"`
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	Error  *Err           `json:"error"`
+	Status string         `json:"status"`
+	Users  *[]EventObject `json:"user"`
 }
 
 // Err is a custom error message stuct marshalled

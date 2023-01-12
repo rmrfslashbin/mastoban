@@ -35,6 +35,7 @@ This platform leverage AWS cloud native services. The following services are use
 - AWS Cloudwatch
 - AWS Lambda
 - AWS S3
+- AWS SQS
 - AWS SSM
 
 Configure the [AWS CLI](https://aws.amazon.com/cli/) for your account and region. At minimum, the AWS account must be able to:
@@ -43,6 +44,7 @@ Configure the [AWS CLI](https://aws.amazon.com/cli/) for your account and region
 - Create S3 buckets.
 - Create SSM parameters.
 - Create Cloudformation stacks.
+- Create SQS queues.
 - Upload Lambda layers to S3.
 
 An S3 bucket is required to store the Lambda deployment package and the Lambda Layer for the GeoIP database. The bucket name is defined in the Makefile and Cloudformation template. The bucket must be created before the Cloudformation stack is deployed.
@@ -126,9 +128,10 @@ Once the Cloudformation stack is deployed, set up the Mastodon webhook. Configur
 
 ## Operations
 <a id="operations"></a>
-- The Mastoban Lambda function logs all webhook transaction in AWS Cloudwatch. Details of the function's operation can be found in the Cloudwatch logs. Succes, failure, and error states are logged for review. If errors are detecte that are not related to configuation items, please open an [issue](https://github.com/rmrfslashbin/mastoban/issues).
-- To change or update the Lambda function configuration environment variables, update the SSM parameters (be sure to append `--overwrite` to the AWS SSM command) and redeploy the Cloudformation stack -or- update the Lambda function directly. If updating the function configuration directly, please note future updates to the Cloudformation template will overwrite the changes.
-- The MaxMind GeoIP database is updated monthly. Should you need to update the databse, follow the [vendor instuctions](#setup_geoipdb_fetch) to download the latest database. Next, redeploy the Cloudformation stack. The new database will be automatically deployed to the Lambda function.
+- Mostoban uses two Lambda functions to operate: mastoban-webook and mastoban-worker. The webhook function received the new account event from Mastodon, conducts some basic checks, then pops the request onto an SQS queue for processing by mastoban-worker.
+- The Mastoban Lambda functions logs all webhook and worker transaction in AWS Cloudwatch. Details of function operations can be found in the Cloudwatch logs. Succes, failure, and error states are logged for review. If errors are detecte that are not related to configuation items, please open an [issue](https://github.com/rmrfslashbin/mastoban/issues).
+- To change or update Lambda function configuration environment variables, update the SSM parameters (be sure to append `--overwrite` to the AWS SSM command) and redeploy the Cloudformation stack -or- update the Lambda functions directly. If updating the function configuration directly, please note future updates to the Cloudformation template will overwrite the changes.
+- The MaxMind GeoIP database is updated monthly. Should you need to update the databse, follow the [vendor instuctions](#setup_geoipdb_fetch) to download the latest database. Next, redeploy the Cloudformation stack. The new database will be automatically deployed to the Lambda functions.
 
 ## CLI
 <a id="CLI"></a>
@@ -138,7 +141,7 @@ A CLI is provided to test functionality. run `make build` to complile the CLI fo
 
 ## Lambda Environment Variables
 <a id="deployment_env_vars"></a>
-These environment variables are required for the Lambda function to run. These variables are defined in the AWS Cloudformation Template. User defined values are set in the SSM parameters. These details are provided for reference and should not require configuration.
+These environment variables are required for the Lambda functions to run. These variables are defined in the AWS Cloudformation Template. User defined values are set in the SSM parameters. These details are provided for reference and should not require configuration.
 
 - GEOIP_DATABSE_PATH: path to the GeoIP database file provided by a Lambda layer. (this should be `/opt/geoipdb/GeoLite2-Country.mmdb`. Do not change this value.)
 - MASTODON_ACCESS_TOKEN: access token for the Mastodon account.
@@ -150,5 +153,4 @@ These environment variables are required for the Lambda function to run. These v
 
 ## Future Enhancements
 <a id="enhancements"></a>
-- Use of an SQS queue to decouple the webhook from the suspension process.
 - Feedback to the Mastodon instance admin(s) or other endpoints (e.g. Slack, webhooks, etc.) when an account is suspended.
