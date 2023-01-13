@@ -8,45 +8,50 @@ Parameters:
     Default: mastoban
     Description: Application/stack name.
 
-  ParamMastodonInstanceUrl:
-    Type: "AWS::SSM::Parameter::Value<String>"
-    Default: /mastoban/*** example ****/instanceUrl ## TODO: Change this to to the cooresponding SSM parameter
-    Description: The URL of the Mastodon instance to use.
-
-  ParamMastodonAccessToken:
-    Type: "AWS::SSM::Parameter::Value<String>"
-    Default: /mastoban/*** example ****/accessToken ## TODO: Change this to to the cooresponding SSM parameter
-    Description: The access token to use for the Mastodon instance.
-
-  ParamMastodonSuspendText:
-    Type: "AWS::SSM::Parameter::Value<String>"
-    Default: /mastoban/*** example ****/suspendText ## TODO: Change this to to the cooresponding SSM parameter
-    Description: The text to use when suspending an account.
-
-  ParamMastodonSuspendLevel:
-    Type: "AWS::SSM::Parameter::Value<String>"
-    Default: /mastoban/*** example ****/suspendLevel ## TODO: Change this to to the cooresponding SSM parameter
-    Description: The action to take when suspending an account.
-
-  ParamMastobanPSK:
-    Type: "AWS::SSM::Parameter::Value<String>"
-    Default: /mastoban/*** example ****/psk ## TODO: Change this to to the cooresponding SSM parameter
-    Description: Pre-shared key
-
-  ParamGeoIpDatabaseS3Bucket:
-    Type: String
-    Description: The S3 bucket where the GeoIP database file is stored.
-    Default: is-us-east-1-deployment ## TODO: Change this to the name of the S3 deployment bucket
-
   ParamGeoIpDatabasePath:
     Type: String
     Default: /opt/geoipdb/GeoLite2-Country.mmdb
     Description: The path to the GeoIP database file.
 
+  ParamGeoIpDatabaseS3Bucket:
+    Type: String
+    Description: The S3 bucket where the GeoIP database file is stored.
+    Default: is-us-east-1-deployment ## TODO: Change this to to the cooresponding S3 bucket
+
   ParamGeoIpDatabaseS3Key:
     Type: String
     Description: The S3 key where the GeoIP database layer file is stored.
     Default: layers/geoipdblayer.zip
+
+  ParamMastodonAccessToken:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** EXAMPLE ***/accessToken ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The access token to use for the Mastodon instance.
+
+  ParamMastodonInstanceUrl:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** EXAMPLE ***/instanceUrl ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The URL of the Mastodon instance to use.
+
+  ParamMastobanGeoCountryPermitList:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** EXAMPLE ***/geoCountryPermitList ## TODO: Change this to to the cooresponding SSM parameter
+    Description: A comma-separated list of ISO 3166-1 alpha-2 country codes to permit.
+
+  ParamMastobanPSK:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** EXAMPLE ***/psk ## TODO: Change this to to the cooresponding SSM parameter
+    Description: Pre-shared key
+
+  ParamMastodonSuspendLevel:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** EXAMPLE ***/suspendLevel ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The action to take when suspending an account.
+
+  ParamMastodonSuspendText:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /mastoban/*** EXAMPLE ***/suspendText ## TODO: Change this to to the cooresponding SSM parameter
+    Description: The text to use when suspending an account.
 
 Globals:
   Function:
@@ -150,6 +155,7 @@ Resources:
           MASTODON_INSTANCE_URL: !Ref ParamMastodonInstanceUrl
           MASTODON_SUSPEND_TEXT: !Ref ParamMastodonSuspendText
           MASTODON_SUSPEND_LEVEL: !Ref ParamMastodonSuspendLevel
+          MASTOBAN_GEO_COUNTRY_PERMIT_LIST: !Ref ParamMastobanGeoCountryPermitList
       Layers:
         - !Ref LayerGeoIpDatabase
       Tags:

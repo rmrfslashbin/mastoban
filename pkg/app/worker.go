@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/rmrfslashbin/mastoban/pkg/geoip"
@@ -129,6 +130,28 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		}, nil
 	}
 
+	// none, sensitive, disable, silence, suspend
+	countryPermitString := os.Getenv("MASTOBAN_GEO_COUNTRY_PERMIT_LIST")
+	if suspendLevel == "" {
+		guid := xid.New()
+		log.Error().
+			Str("module", MODULE).
+			Str("function", "AppHandler").
+			Str("process", "os.Getenv('MASTOBAN_GEO_COUNTRY_PERMIT_LIST')").
+			Str("errRef", guid.String()).
+			Msg("Failed to get MASTOBAN_GEO_COUNTRY_PERMIT_LIST from environment")
+		return &structs.Output{
+			Error: &structs.Err{
+				ErrRef: guid.String(), Msg: errorUnableToFetchEnvVar("MASTOBAN_GEO_COUNTRY_PERMIT_LIST"),
+			},
+		}, nil
+	}
+
+	countriesPermitList := make(map[string]struct{})
+	for _, country := range strings.Split(countryPermitString, ",") {
+		countriesPermitList[strings.ToUpper(strings.TrimSpace(country))] = struct{}{}
+	}
+
 	// Create a new mastoclient instance
 	mastodonClient, err := mastoclient.New(
 		mastoclient.WithInstance(instanceURL),
@@ -197,8 +220,8 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			continue
 		}
 
-		// If the IP is from the US, do nothing
-		if ipData.Country == "US" {
+		if _, ok := countriesPermitList[ipData.Country]; ok {
+			//if ipData.Country == "US" {
 			guid := xid.New()
 			log.Info().
 				Str("module", MODULE).
@@ -213,7 +236,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 				Str("Domain", message.Object.Domain).
 				Str("Email", message.Object.Email).
 				Str("CreatedAt", message.Object.CreatedAt).
-				Msg("IP is from the US. Doing nothing.")
+				Msg("IP is the permitted country list. Doing nothing.")
 			continue
 		}
 
@@ -251,7 +274,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			Str("Domain", message.Object.Domain).
 			Str("Email", message.Object.Email).
 			Str("CreatedAt", message.Object.CreatedAt).
-			Msg("IP is not from the US. Account Suspended!")
+			Msg("IP is not from the county permit list. Account Suspended!")
 
 		impactedUsers = append(impactedUsers, structs.EventObject{
 			Username:  message.Object.Username,

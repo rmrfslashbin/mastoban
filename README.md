@@ -21,6 +21,7 @@ These items are required to configure and deploy Mastoban:
 - A Mastodon app with the `admin:write:accounts` scope and an associated [access token](#setup_access_token).
 - Text to include in the suspension message.
 - Level of suspension. See [Mastodon Suspend Level](#deployment_suspend_level) for details.
+- A comma separated list of permitted countries. See [Permitted Countries](#deployment_permitted_countries) for details.
 - A [PSK (Pre-shared Key)](#setup_psk) to provide a security for the webhook.
 - Set up SSM parameters for the Cloudformation template. See [SSM Params](#deployment_ssm) for details.
 - Fix up the Makefile and AWS Cloudformation Template to suit your needs. See [AWS Deployment](#deployment_deploy_setup) for details.
@@ -91,6 +92,10 @@ Allowed Values:
 
 Choose a suspension level that is appropriate for your use case make note for later use when setting up the [AWS SSM parameters](#deployment_ssm).
 
+### Permitted Countries
+<a id="deployment_permitted_countries"></a>
+When an new account is presented, the IP address of the account is checked against the GeoIP database. If the country of the IP address is not in the list of permitted countries, the account is suspended. Add a list of permitted countries to the `geoCountryPermitList` [AWS SSM parameters](#deployment_ssm). The list must be a comma separated list of ISO 3166-1 alpha-2 country codes. See https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes for details.
+
 ### SSM Params
 <a id="deployment_ssm"></a>
 Mastoban uses AWS SSM Parameter Store to store sensitive information and configuration options. Replace `example` with a friendly name of the Mastodon instance. Set the corresponding values to suit your specific Mastodon environment. The following parameters are required:
@@ -100,6 +105,7 @@ aws --profile default ssm put-parameter --name /mastoban/example/accessToken --t
 aws --profile default ssm put-parameter --name /mastoban/example/instanceUrl --type String --value https://example.com
 aws --profile default ssm put-parameter --name /mastoban/example/suspendText --type String --value 'This account has been suspended pending further review.'
 aws --profile default ssm put-parameter --name /mastoban/example/suspendLevel --type String --value suspend
+aws --profile default ssm put-parameter --name /mastoban/example/geoCountryPermitList --type String --value US,CA,JP
 aws --profile default ssm put-parameter --name /mastoban/example/psk --type String --value my_random_psk_string
 ```
 
