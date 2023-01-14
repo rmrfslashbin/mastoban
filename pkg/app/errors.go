@@ -2,10 +2,12 @@ package app
 
 // Errors for the app module.
 
+/* might be deprecated
 func errorFailedToSuspendUser() string {
 	msg := "failed to suspend user"
 	return msg
 }
+*/
 
 func errorMessageEventNotSupported() string {
 	msg := "message event not supported"
@@ -42,10 +44,12 @@ func errorUnableToFetchEnvVar(varname string) string {
 	return msg
 }
 
+/* might be deprecated
 func errorUnableToLookupIP() string {
 	msg := "unable to lookup IP in GeoIP database"
 	return msg
 }
+*/
 
 func errorUnableToSendMessageToQueue() string {
 	msg := "unable to send message to queue"
