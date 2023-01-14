@@ -1,9 +1,5 @@
 package app
 
-import (
-	"github.com/rs/zerolog"
-)
-
 const MODULE = "app"
 
 /* Environment variables requried by the Lambda function:
@@ -13,8 +9,3 @@ MASTODON_INSTANCE_URL: URL of the Mastodon instance. (e.g. https://mastodon.soci
 MASTODON_SUSPEND_TEXT: text to include in the suspension notice.
 PSK: pre-shared key, you know... for security.
 */
-
-// config holds the configuration for the Lambda function
-type config struct {
-	log *zerolog.Logger
-}

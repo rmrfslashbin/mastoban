@@ -15,16 +15,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// AppHandler is the entry point for the Lambda function
+// WorkerHandler is the entry point for the Lambda function
 func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Output, error) {
 
 	// Set up the logger
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
-	// set up the config struct
-	cfg := &config{}
-	cfg.log = &log
 
 	// Fetch the GeoIP database path from the environment
 	geoIpDBPath := os.Getenv("GEOIP_DATABSE_PATH")
@@ -32,7 +28,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "os.Getenv('GEOIP_DATABSE_PATH')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get GEOIP_DATABSE_PATH from environment")
@@ -50,7 +46,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		log.Error().
 			Err(err).
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "geoip.New()").
 			Str("errRef", guid.String()).
 			Str("GeoIPDBPath", geoIpDBPath).
@@ -68,7 +64,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "os.Getenv('MASTODON_ACCESS_TOKEN')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get MASTODON_ACCESS_TOKEN from environment")
@@ -85,7 +81,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "os.Getenv('MASTODON_INSTANCE_URL')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get MASTODON_INSTANCE_URL from environment")
@@ -102,7 +98,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "os.Getenv('MASTODON_SUSPEND_TEXT')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get MASTODON_SUSPEND_TEXT from environment")
@@ -119,7 +115,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "os.Getenv('MASTODON_SUSPEND_LEVEL')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get MASTODON_SUSPEND_LEVEL from environment")
@@ -136,7 +132,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "os.Getenv('MASTOBAN_GEO_COUNTRY_PERMIT_LIST')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get MASTOBAN_GEO_COUNTRY_PERMIT_LIST from environment")
@@ -163,7 +159,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		log.Error().
 			Err(err).
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "mastoclient.New()").
 			Str("errRef", guid.String()).
 			Msg("Failed to create new mastoclient instance")
@@ -183,7 +179,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			log.Error().
 				Err(err).
 				Str("module", MODULE).
-				Str("function", "AppHandler").
+				Str("function", "WorkerHandler").
 				Str("process", "json.Unmarshal() request body").
 				Str("errRef", guid.String()).
 				Str("requestBody", string(request.Records[i].Body)).
@@ -197,7 +193,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			guid := xid.New()
 			log.Error().
 				Str("module", MODULE).
-				Str("function", "AppHandler").
+				Str("function", "WorkerHandler").
 				Str("process", "net.ParseIP()").
 				Str("IP", message.Object.Ip).
 				Str("errRef", guid.String()).
@@ -212,7 +208,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			log.Error().
 				Err(err).
 				Str("module", MODULE).
-				Str("function", "AppHandler").
+				Str("function", "WorkerHandler").
 				Str("process", "geoIpDB.Lookup()").
 				Str("IP", userIP.String()).
 				Str("errRef", guid.String()).
@@ -225,7 +221,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			guid := xid.New()
 			log.Info().
 				Str("module", MODULE).
-				Str("function", "AppHandler").
+				Str("function", "WorkerHandler").
 				Str("process", "geoIpDB.Lookup()").
 				Str("errRef", guid.String()).
 				Str("IP", ipData.IP.String()).
@@ -251,7 +247,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 			log.Error().
 				Err(err).
 				Str("module", MODULE).
-				Str("function", "AppHandler").
+				Str("function", "WorkerHandler").
 				Str("process", "mastodonClient.Suspend()").
 				Str("UserID", message.Object.Id).
 				Str("errRef", guid.String()).
@@ -263,7 +259,7 @@ func WorkerHandler(ctx context.Context, request events.SQSEvent) (*structs.Outpu
 		guid := xid.New()
 		log.Info().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WorkerHandler").
 			Str("process", "geoIpDB.Lookup()").
 			Str("errRef", guid.String()).
 			Str("IP", ipData.IP.String()).

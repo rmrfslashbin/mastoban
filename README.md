@@ -151,11 +151,11 @@ These environment variables are required for the Lambda functions to run. These 
 
 - GEOIP_DATABSE_PATH: path to the GeoIP database file provided by a Lambda layer. (this should be `/opt/geoipdb/GeoLite2-Country.mmdb`. Do not change this value.)
 - MASTODON_ACCESS_TOKEN: access token for the Mastodon account.
+- MASTOBAN_GEO_COUNTRY_PERMIT_LIST: comma separated list of country codes to permit.
 - MASTODON_INSTANCE_URL: URL of the Mastodon instance. (e.g. https://mastodon.social)
 - MASTODON_SUSPEND_TEXT: text to include in the suspension message.
 - MASTODON_SUSPEND_LEVEL: level of suspension. See below for details.
 - PSK: pre-shared key, you know... for security. This should be a string.
-
 
 ## Future Enhancements
 <a id="enhancements"></a>

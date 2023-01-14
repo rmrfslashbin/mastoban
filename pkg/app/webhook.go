@@ -23,7 +23,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "request.QueryStringParameters['psk']").
 			Str("errRef", guid.String()).
 			Str("QueryStringParameters", spew.Sdump(request.QueryStringParameters)).
@@ -41,7 +41,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "os.Getenv('PSK')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get PSK from environment")
@@ -56,7 +56,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "if queryPSK != expectedPSK").
 			Str("errRef", guid.String()).
 			Str("queryPSK", queryPSK).
@@ -77,7 +77,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		log.Error().
 			Err(err).
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "json.Unmarshal([]byte(request.Body), message)").
 			Str("errRef", guid.String()).
 			Str("Message", string(request.Body)).
@@ -94,7 +94,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		log.Error().
 			Err(err).
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "message.Event check").
 			Str("errRef", guid.String()).
 			Str("MessageEvent", message.Event).
@@ -112,7 +112,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		guid := xid.New()
 		log.Error().
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "os.Getenv('SQS_QUEUE_URL')").
 			Str("errRef", guid.String()).
 			Msg("Failed to get SQS queue URL from environment")
@@ -132,7 +132,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		log.Error().
 			Err(err).
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "queue.New()").
 			Str("errRef", guid.String()).
 			Msg("Failed to create SQS queue instance")
@@ -148,7 +148,7 @@ func WebhookHandler(ctx context.Context, request events.APIGatewayProxyRequest) 
 		log.Error().
 			Err(err).
 			Str("module", MODULE).
-			Str("function", "AppHandler").
+			Str("function", "WebhookHandler").
 			Str("process", "sqs.SendWorkerMessage(message)").
 			Str("errRef", guid.String()).
 			Msg("Failed to send message to SQS queue")
