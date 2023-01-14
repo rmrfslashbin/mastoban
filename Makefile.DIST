@@ -5,6 +5,8 @@ deploy_bucket = is-us-east-1-deployment
 aws_profile = default 
 stack_name = mastoban
 
+stack_name = mastoban
+
 build: tidy cli-build lambda-build
 
 cli-build:
@@ -48,8 +50,11 @@ cfdeploy:
 	
 lambda-build:
 	@printf "building $(stack_name) lambda functions:\n"
-	@printf "  mastoban"
-	@GOOS=linux GOARCH=arm64 go build -o bin/lambda/mastoban/bootstrap lambda/mastoban/main.go
+	@printf "  mastoban-worker"
+	@GOOS=linux GOARCH=arm64 go build -o bin/lambda/mastoban-worker/bootstrap lambda/mastoban-worker/main.go
+	@printf " done.\n"
+	@printf "  mastoban-webhook"
+	@GOOS=linux GOARCH=arm64 go build -o bin/lambda/mastoban-webhook/bootstrap lambda/mastoban-webhook/main.go
 	@printf " done.\n"
 	
 cfdescribe:
